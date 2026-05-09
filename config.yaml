@@ -1,0 +1,126 @@
+# GoPress CMS 主配置文件
+# 复制此文件为 config.yaml 并填入实际值
+
+app:
+  name: "GoPress"
+  env: "development"           # development | staging | production
+  port: "8080"
+  base_url: "http://localhost:8080"
+  base_path: "."              # 项目根目录，用于主题文件等资源的相对路径
+  debug: true
+  timezone: "Asia/Shanghai"
+  secret_key: "change-me-to-a-random-secret-key"
+
+database:
+  driver: "mysql"             # mysql | postgres | sqlite
+  host: "127.0.0.1"
+  port: 3306
+  name: "gopress"
+  user: "root"
+  password: "password"
+  charset: "utf8mb4"
+  max_open_conns: 50
+  max_idle_conns: 10
+  conn_max_lifetime: 3600
+  conn_max_idle_time: 600
+  log_level: "warn"
+
+redis:
+  addr: "127.0.0.1:6379"
+  password: ""
+  db: 0
+  pool_size: 20
+  min_idle_conns: 5
+  max_retries: 3
+  dial_timeout: 5     # seconds
+  read_timeout: 3     # seconds
+  write_timeout: 3    # seconds
+  prefix: "gopress:"
+
+jwt:
+  access_secret: "change-access-secret-key"
+  refresh_secret: "change-refresh-secret-key"
+  access_expire: 3600          # access token 有效期（秒）
+  refresh_expire: 604800        # refresh token 有效期（秒）
+
+storage:
+  driver: "local"              # local | s3 | cos | oss
+  local:
+    root: "./storage/uploads"
+    base_url: "/uploads"
+
+upload:
+  max_size: 20971520           # 20MB
+  allowed_types:
+    - "image/jpeg"
+    - "image/png"
+    - "image/gif"
+    - "image/webp"
+    - "image/avif"
+    - "application/pdf"
+  image_quality: 85
+  generate_webp: true
+
+media:
+  storage: local               # local 或 minio
+  max_file_size: 52428800      # 50MB
+  allowed_types:
+    - "image/jpeg"
+    - "image/png"
+    - "image/gif"
+    - "image/webp"
+    - "application/pdf"
+    - "application/msword"
+    - "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  local:
+    base_path: "./uploads"
+    base_url: "/uploads"
+  minio:
+    endpoint: "localhost:9000"
+    access_key: "minioadmin"
+    secret_key: "minioadmin"
+    bucket: "gopress"
+    use_ssl: false
+    region: "us-east-1"
+    base_url: "http://localhost:9000/gopress"
+
+cache:
+  driver: "redis"
+  default_ttl: 300
+
+log:
+  level: "info"               # debug | info | warn | error
+  format: "json"              # json | text
+  output: "stdout"
+
+cors:
+  allowed_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "PATCH"
+    - "DELETE"
+    - "OPTIONS"
+  allowed_headers:
+    - "Authorization"
+    - "Content-Type"
+    - "X-Request-ID"
+  max_age: 86400
+
+rate_limit:
+  enabled: true
+  requests: 100
+  window: 60
+
+gzip:
+  enabled: true
+  compression_level: 5           # 1-9, 1=best speed, 9=best compression
+  min_size: 1024                 # minimum response size to compress (bytes)
+
+performance:
+  enabled: true
+  report_interval: 60            # seconds between metric reports
+  slow_request_threshold: 1000    # log requests slower than this (ms)

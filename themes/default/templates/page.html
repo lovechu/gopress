@@ -1,0 +1,13 @@
+{{ define "page" }}
+{{ template "layout/base" . }}
+{{ define "content" }}
+<article class="single-page">
+    <header class="page-header">
+        <h1 class="page-title">{{ .Page.Title }}</h1>
+    </header>
+
+    <div class="page-content">
+        {{ safeHTML .Page.Content }}
+    </div>
+</article>
+{{ end }}

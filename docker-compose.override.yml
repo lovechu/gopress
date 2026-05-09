@@ -1,0 +1,46 @@
+version: '3.8'
+
+# Development override configuration
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+
+services:
+  app:
+    # Override to use Go hot reload with air or similar
+    build:
+      target: builder  # Use builder stage for development
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      - ./storage:/app/storage
+      - ./logs:/app/logs
+      - go_mod_cache:/go/pkg/mod
+    command: >
+      sh -c "
+        go install github.com/cosmtrek/air@latest &&
+        air
+      "
+    environment:
+      APP_ENV: development
+      APP_DEBUG: "true"
+    networks:
+      - gopress_network
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-gopress_secure_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - gopress_network
+
+  redis:
+    command: redis-server --appendonly yes --loglevel debug
+    volumes:
+      - redis_data:/data
+    networks:
+      - gopress_network
+
+volumes:
+  go_mod_cache:
+    driver: local

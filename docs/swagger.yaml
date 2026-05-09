@@ -1,0 +1,25 @@
+swagger: "2.0"
+info:
+  title: GoPress API
+  description: GoPress 是一个用 Go 语言开发的现代化 CMS 框架，支持多站点、多语言、多租户。
+  version: "1.0"
+  contact:
+    name: API Support
+    url: http://www.example.com/support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+host: localhost:8080
+basePath: /api
+schemes:
+  - http
+  - https
+securityDefinitions:
+  BearerAuth:
+    type: apiKey
+    in: header
+    name: Authorization
+    description: 输入 Bearer {token} (注意 Bearer 和 token 之间有一个空格)
+paths: {}
+definitions: {}

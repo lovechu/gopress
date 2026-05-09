@@ -1,0 +1,19 @@
+{{ define "base" }}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ block "title" . }}GoPress{{ end }}</title>
+    <link rel="stylesheet" href="{{ .AssetsPath }}/css/style.css">
+</head>
+<body>
+    {{ template "partials/header" . }}
+    <main class="container">
+        {{ block "content" . }}{{ end }}
+    </main>
+    {{ template "partials/footer" . }}
+    <script src="{{ .AssetsPath }}/js/main.js"></script>
+</body>
+</html>
+{{ end }}

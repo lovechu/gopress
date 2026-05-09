@@ -1,0 +1,40 @@
+{{ define "index" }}
+{{ template "layout/base" . }}
+{{ define "content" }}
+<div class="home-page">
+    <div class="posts-list">
+        {{ range .Posts }}
+        <article class="post-card">
+            <h2 class="post-title">
+                <a href="/post/{{ .Slug }}">{{ .Title }}</a>
+            </h2>
+            <div class="post-meta">
+                <span class="post-author">{{ .AuthorName }}</span>
+                <span class="post-date">{{ dateformat .PublishedAt "2006-01-02" }}</span>
+                <span class="post-views">{{ .ViewCount }} 阅读</span>
+            </div>
+            <div class="post-excerpt">
+                {{ .Excerpt }}
+            </div>
+            <a href="/post/{{ .Slug }}" class="read-more">阅读更多</a>
+        </article>
+        {{ else }}
+        <p class="no-posts">暂无文章</p>
+        {{ end }}
+    </div>
+
+    {{ if gt .Pagination.TotalPages 1 }}
+    <nav class="pagination">
+        {{ if .Pagination.HasPrev }}
+        <a href="/?page={{ sub .Pagination.Page 1 }}" class="page-link">上一页</a>
+        {{ end }}
+
+        <span class="page-info">第 {{ .Pagination.Page }} / {{ .Pagination.TotalPages }} 页</span>
+
+        {{ if .Pagination.HasNext }}
+        <a href="/?page={{ add .Pagination.Page 1 }}" class="page-link">下一页</a>
+        {{ end }}
+    </nav>
+    {{ end }}
+</div>
+{{ end }}

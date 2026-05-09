@@ -1,0 +1,36 @@
+{{ define "single" }}
+{{ template "layout/base" . }}
+{{ define "content" }}
+<article class="single-post">
+    <header class="post-header">
+        <h1 class="post-title">{{ .Post.Title }}</h1>
+        <div class="post-meta">
+            <span class="post-author">作者: {{ .Post.AuthorName }}</span>
+            <span class="post-date">发布于: {{ dateformat .Post.PublishedAt "2006-01-02" }}</span>
+            <span class="post-views">{{ .Post.ViewCount }} 阅读</span>
+        </div>
+    </header>
+
+    {{ if or (len .Categories) (len .Tags) }}
+    <div class="post-terms">
+        {{ range .Categories }}
+        <a href="/category/{{ .Slug }}" class="term-link category">{{ .Name }}</a>
+        {{ end }}
+        {{ range .Tags }}
+        <a href="/tag/{{ .Slug }}" class="term-link tag">{{ .Name }}</a>
+        {{ end }}
+    </div>
+    {{ end }}
+
+    <div class="post-content">
+        {{ safeHTML .Post.Content }}
+    </div>
+
+    {{ if .Post.CommentAllowed }}
+    <section class="comments">
+        <h3>评论</h3>
+        <p>评论功能开发中...</p>
+    </section>
+    {{ end }}
+</article>
+{{ end }}

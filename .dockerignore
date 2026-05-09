@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+gopress
+
+# Test files
+*_test.go
+*.test
+*.out
+
+# Documentation
+*.md
+docs/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+vendor/
+
+# Logs
+*.log
+logs/
+
+# Storage (will be mounted as volume)
+storage/
+uploads/
+
+# Configuration (will be mounted or use environment variables)
+config.yaml
+.env
+
+# Python scripts (if not needed in container)
+*.py
+__pycache__/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

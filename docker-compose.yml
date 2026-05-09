@@ -1,0 +1,168 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: gopress_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-gopress}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-gopress_secure_password}
+      POSTGRES_DB: ${DB_NAME:-gopress}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - gopress_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-gopress}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: gopress_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - gopress_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO Object Storage (Optional)
+  minio:
+    image: minio/minio:latest
+    container_name: gopress_minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - gopress_network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    profiles:
+      - with-minio
+
+  # MinIO Client for bucket creation (Optional)
+  minio-init:
+    image: minio/mc:latest
+    container_name: gopress_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio:9000 ${MINIO_ACCESS_KEY:-minioadmin} ${MINIO_SECRET_KEY:-minioadmin};
+      mc mb myminio/${MINIO_BUCKET:-gopress} --ignore-existing;
+      mc anonymous set download myminio/${MINIO_BUCKET:-gopress};
+      "
+    networks:
+      - gopress_network
+    profiles:
+      - with-minio
+    restart: "no"
+
+  # GoPress Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gopress_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      # Application
+      APP_ENV: ${APP_ENV:-development}
+      APP_PORT: ${APP_PORT:-8080}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_SECRET_KEY: ${APP_SECRET_KEY:-change-me-to-a-random-secret-key}
+
+      # Database (PostgreSQL)
+      DB_DRIVER: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-gopress}
+      DB_USER: ${DB_USER:-gopress}
+      DB_PASSWORD: ${DB_PASSWORD:-gopress_secure_password}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+
+      # Redis
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
+
+      # JWT
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-access-secret-key}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-refresh-secret-key}
+
+      # Storage (Local or MinIO)
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      MEDIA_STORAGE: ${MEDIA_STORAGE:-local}
+
+      # MinIO (if using MinIO)
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-gopress}
+      MINIO_USE_SSL: "false"
+
+      # Timezone
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./themes:/app/themes:ro
+      - app_storage:/app/storage
+      - app_logs:/app/logs
+    networks:
+      - gopress_network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  app_storage:
+    driver: local
+  app_logs:
+    driver: local
+
+networks:
+  gopress_network:
+    driver: bridge
