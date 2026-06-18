@@ -41,6 +41,13 @@ func (h *Handler) RegisterPublicRoutes(rg *gin.RouterGroup) {
 	rg.GET("/theme/assets/*filepath", h.ThemeAssets)
 }
 
+// RegisterAdminRoutes 注册管理员路由
+func (h *Handler) RegisterAdminRoutes(rg *gin.RouterGroup) {
+	rg.GET("/themes", h.ListThemes)
+	rg.GET("/themes/:name", h.GetTheme)
+	rg.POST("/themes/:name/activate", h.ActivateTheme)
+}
+
 // Home 首页处理
 func (h *Handler) Home(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -197,16 +204,98 @@ func (h *Handler) Page(c *gin.Context) {
 // ThemeAssets 主题静态资源处理
 func (h *Handler) ThemeAssets(c *gin.Context) {
 	fp := c.Param("filepath")
-
-	// 安全检查：防止路径遍历
 	fp = strings.TrimPrefix(fp, "/")
-	fp = strings.ReplaceAll(fp, "..", "")
 
 	// 获取当前激活主题（默认 default）
 	themeName := "default"
 
-	filePath := filepath.Join(h.themesPath, themeName, "assets", fp)
-	c.File(filePath)
+	// 构建预期的基础路径
+	baseDir := filepath.Join(h.themesPath, themeName, "assets")
+
+	// 清理路径并验证最终路径仍在 baseDir 内
+	cleanPath := filepath.Join(baseDir, fp)
+	if !strings.HasPrefix(cleanPath, baseDir) {
+		c.String(http.StatusForbidden, "forbidden")
+		return
+	}
+
+	c.File(cleanPath)
+}
+
+// ListThemes godoc
+// @Summary      获取主题列表
+// @Description  获取所有已安装的主题列表（管理员）
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  ThemeListResponse
+// @Failure      401  {object}  response.Response
+// @Failure      403  {object}  response.Response
+// @Failure      500  {object}  response.Response
+// @Router       /api/admin/themes [get]
+func (h *Handler) ListThemes(c *gin.Context) {
+	themes, err := h.svc.ListThemes()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list themes"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"themes": themes,
+	})
+}
+
+// GetTheme godoc
+// @Summary      获取主题详情
+// @Description  获取指定主题的详细信息（管理员）
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        name path string true "主题名称"
+// @Success      200  {object}  Theme
+// @Failure      401  {object}  response.Response
+// @Failure      403  {object}  response.Response
+// @Failure      404  {object}  response.Response
+// @Failure      500  {object}  response.Response
+// @Router       /api/admin/themes/{name} [get]
+func (h *Handler) GetTheme(c *gin.Context) {
+	name := c.Param("name")
+	themes, err := h.svc.ListThemes()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get theme"})
+		return
+	}
+	for _, theme := range themes {
+		if theme.Name == name || theme.Slug == name {
+			c.JSON(http.StatusOK, theme)
+			return
+		}
+	}
+	c.JSON(http.StatusNotFound, gin.H{"error": "theme not found"})
+}
+
+// ActivateTheme godoc
+// @Summary      激活主题
+// @Description  激活指定的主题（管理员）
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        name path string true "主题名称"
+// @Success      200  {object}  response.Response
+// @Failure      401  {object}  response.Response
+// @Failure      403  {object}  response.Response
+// @Failure      404  {object}  response.Response
+// @Failure      500  {object}  response.Response
+// @Router       /api/admin/themes/{name}/activate [post]
+func (h *Handler) ActivateTheme(c *gin.Context) {
+	name := c.Param("name")
+	if err := h.svc.SetActiveTheme(name); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "theme activated", "theme": name})
 }
 
 // 确保编译期引用 time 包（用于 PostDetail 等结构体）

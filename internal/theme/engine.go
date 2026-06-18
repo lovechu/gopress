@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -411,9 +412,16 @@ func truncate(s string, length int) string {
 	return s[:length] + "..."
 }
 
-// safeHTML 标记字符串为安全的HTML
+// safeHTML 标记字符串为安全的HTML（仅用于受信任内容）
 func safeHTML(s string) template.HTML {
 	return template.HTML(s)
+}
+
+// escapeHTML 转义HTML特殊字符，防止XSS
+func escapeHTML(s string) string {
+	var b strings.Builder
+	template.HTMLEscape(&b, []byte(s))
+	return b.String()
 }
 
 // add 加法
